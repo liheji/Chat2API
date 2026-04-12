@@ -59,6 +59,9 @@ RUN chmod +x /startapp.sh
 RUN mkdir -p /etc/xdg/openbox
 COPY docker/openbox-autostart /etc/xdg/openbox/autostart
 
+# Set icons
+COPY docker/icons /opt/noVNC/app/images/icons
+
 # Run as root so the app can write to /root/.chat2api
 # (baseimage-gui respects USER_ID=0)
 ENV USER_ID=0
@@ -71,9 +74,13 @@ RUN mkdir -p /root/.chat2api /root/.pki/nssdb
 VOLUME ["/root/.chat2api"]
 
 # Metadata consumed by baseimage-gui
+ARG VERSION
 ENV APP_NAME="Chat2API"
-ENV DISPLAY_WIDTH=1440
-ENV DISPLAY_HEIGHT=900
+ENV APP_VERSION=${VERSION}
+ENV TZ=Asia/Shanghai
+ENV DISPLAY_WIDTH=1920
+ENV DISPLAY_HEIGHT=1080
+ENV KEEP_APP_RUNNING=1
 
 # 5800 = noVNC web UI (HTTP), 5900 = raw VNC, 8080 = Chat2API proxy API
 EXPOSE 5800 5900 8080

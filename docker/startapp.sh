@@ -27,6 +27,7 @@ fi
 echo "Launching: ${APP_BIN}" >&2
 cd "${APP_DIR}"
 exec "${APP_BIN}" \
+    --lang="en-US" \
     --no-sandbox \
     --disable-gpu \
     --disable-dev-shm-usage \
