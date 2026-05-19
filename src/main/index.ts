@@ -4,6 +4,7 @@ import { createWindow, getMainWindow, loadUrl, loadFile, openDevTools } from './
 import { createTrayManager, TrayManager } from './tray/TrayManager'
 import { registerIpcHandlers } from './ipc/handlers'
 import { UpdaterManager } from './updater'
+import { storeManager } from './store/store'
 
 // Prevent uncaught exceptions from crashing the app
 process.on('uncaughtException', (error) => {
@@ -110,7 +111,7 @@ async function loadAppContent(mainWindow: BrowserWindow): Promise<void> {
 
   if (isDev) {
     try {
-      await loadUrl('http://localhost:5173')
+      await loadUrl(process.env.ELECTRON_RENDERER_URL || 'http://localhost:5173')
     } catch (error) {
       console.error('Failed to load development server:', error)
     }
@@ -125,6 +126,7 @@ async function loadAppContent(mainWindow: BrowserWindow): Promise<void> {
 
 function cleanup(): void {
   console.log('Application is exiting, performing cleanup...')
+  storeManager.flushPendingWrites()
   const updaterManager = UpdaterManager.getInstance()
   updaterManager.destroy()
 }

@@ -4,6 +4,8 @@
  */
 
 import type { ProviderStatus } from '../../shared/types'
+import type { LegacyToolPromptConfig, ToolCallingConfig } from '../../shared/toolCalling'
+import { DEFAULT_TOOL_CALLING_CONFIG } from '../../shared/toolCalling'
 
 /**
  * Account Status Enum
@@ -193,6 +195,8 @@ export interface AppConfig {
   logLevel: 'debug' | 'info' | 'warn' | 'error'
   /** Log retention days */
   logRetentionDays: number
+  /** Request log persistence configuration */
+  requestLogConfig: RequestLogConfig
   /** Request timeout (milliseconds) */
   requestTimeout: number
   /** Retry count */
@@ -205,8 +209,10 @@ export interface AppConfig {
   oauthProxyMode: 'system' | 'none'
   /** Session management configuration */
   sessionConfig: SessionConfig
-  /** Tool prompt injection configuration */
-  toolPromptConfig: ToolPromptConfig
+  /** Tool calling configuration */
+  toolCallingConfig: ToolCallingConfig
+  /** Legacy migration input from pre-v2 tool prompt settings */
+  toolPromptConfig?: LegacyToolPromptConfig
   /** Management API configuration */
   managementApi: ManagementApiConfig
   /** Context management configuration */
@@ -337,29 +343,7 @@ export interface SessionConfig {
   maxSessionsPerAccount: number
 }
 
-/**
- * Injection Strategy (Simplified)
- * Controls whether to inject tool prompts
- * - auto: Detect client automatically, skip for known clients (default)
- * - always: Always inject tool prompts
- * - never: Never inject tool prompts
- */
-export type InjectionStrategy = 'auto' | 'always' | 'never'
-
-/**
- * Tool Prompt Configuration Interface (Simplified)
- * Controls how tool prompts are injected for models without native function calling
- */
-export interface ToolPromptConfig {
-  /** Injection mode: 'auto' detects client, 'always' always injects, 'never' disables injection */
-  mode: InjectionStrategy
-  /** Default protocol format: 'bracket' for [function_calls] format, 'xml' for <tool_use> format */
-  defaultFormat: 'bracket' | 'xml'
-  /** Custom prompt template (optional). Supports variables: {{tools}}, {{tool_names}}, {{format}} */
-  customPromptTemplate?: string
-  /** Whether to enable tool call parsing from model output (default: true) */
-  enableToolCallParsing: boolean
-}
+export type { LegacyToolPromptConfig, ToolCallingConfig }
 
 /**
  * Management API Configuration Interface
@@ -476,6 +460,19 @@ export interface RequestLogEntry {
   errorMessage?: string
   /** Error stack trace */
   errorStack?: string
+}
+
+export interface RequestLogConfig {
+  /** Whether detailed request logs are persisted */
+  enabled: boolean
+  /** Maximum persisted request log entries */
+  maxEntries: number
+  /** Whether request and response bodies are stored */
+  includeBodies: boolean
+  /** Maximum characters persisted for each body field */
+  maxBodyChars: number
+  /** Whether obvious sensitive values are redacted */
+  redactSensitiveData: boolean
 }
 
 /**
@@ -670,15 +667,7 @@ export const DEFAULT_STATISTICS: PersistentStatistics = {
  */
 export const DEFAULT_USER_MODEL_OVERRIDES: UserModelOverrides = {}
 
-/**
- * Default Tool Prompt Configuration
- */
-export const DEFAULT_TOOL_PROMPT_CONFIG: ToolPromptConfig = {
-  mode: 'auto',
-  defaultFormat: 'bracket',
-  customPromptTemplate: undefined,
-  enableToolCallParsing: true,
-}
+export const DEFAULT_TOOL_CALLING_CONFIG_VALUE = DEFAULT_TOOL_CALLING_CONFIG
 
 /**
  * Default Management API Configuration
@@ -701,6 +690,14 @@ export const DEFAULT_CONTEXT_MANAGEMENT_CONFIG: ContextManagementConfig = {
   executionOrder: ['slidingWindow', 'tokenLimit', 'summary'],
 }
 
+export const DEFAULT_REQUEST_LOG_CONFIG: RequestLogConfig = {
+  enabled: true,
+  maxEntries: 200,
+  includeBodies: false,
+  maxBodyChars: 8000,
+  redactSensitiveData: true,
+}
+
 /**
  * Default Application Configuration
  */
@@ -715,13 +712,15 @@ export const DEFAULT_CONFIG: AppConfig = {
   minimizeToTray: true,
   logLevel: 'info',
   logRetentionDays: 7,
+  requestLogConfig: DEFAULT_REQUEST_LOG_CONFIG,
   requestTimeout: 60000,
   retryCount: 3,
   apiKeys: [],
   enableApiKey: false,
   oauthProxyMode: 'system',
   sessionConfig: DEFAULT_SESSION_CONFIG,
-  toolPromptConfig: DEFAULT_TOOL_PROMPT_CONFIG,
+  toolCallingConfig: DEFAULT_TOOL_CALLING_CONFIG,
+  toolPromptConfig: undefined,
   managementApi: DEFAULT_MANAGEMENT_API_CONFIG,
   contextManagement: DEFAULT_CONTEXT_MANAGEMENT_CONFIG,
 }
