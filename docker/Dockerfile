@@ -35,7 +35,7 @@ RUN set -e; \
 #   - s6-overlay       (process supervision)
 # App just needs to provide /startapp.sh
 # ─────────────────────────────────────────────
-FROM jlesage/baseimage-gui:debian-12-v4
+FROM jlesage/baseimage-gui:debian-12-v4.11
 
 # Electron / Chromium runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
