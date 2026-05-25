@@ -602,6 +602,8 @@ export interface ProviderModelOverrides {
  */
 export type UserModelOverrides = Record<string, ProviderModelOverrides>
 
+export const DEEPSEEK_PRIMARY_MODELS = ['deepseek-v4-flash', 'deepseek-v4-pro']
+
 /**
  * Effective Model Information
  * Combined model info after merging defaults with user overrides
@@ -767,6 +769,24 @@ export function createDefaultModelMappings(): Record<string, ModelMapping> {
   return Object.fromEntries(
     Object.entries(DEFAULT_DEEPSEEK_MODEL_MAPPINGS).map(([key, mapping]) => [key, { ...mapping }]),
   )
+}
+
+export function sanitizeDeepSeekModelOverrides(
+  overrides?: ProviderModelOverrides
+): ProviderModelOverrides {
+  const migratedModelNames = new Set([
+    ...DEEPSEEK_PRIMARY_MODELS,
+    ...Object.keys(DEFAULT_DEEPSEEK_MODEL_MAPPINGS),
+  ])
+
+  return {
+    addedModels: (overrides?.addedModels || []).filter(model =>
+      !migratedModelNames.has(model.displayName)
+    ),
+    excludedModels: (overrides?.excludedModels || []).filter(model =>
+      DEEPSEEK_PRIMARY_MODELS.includes(model)
+    ),
+  }
 }
 
 /**

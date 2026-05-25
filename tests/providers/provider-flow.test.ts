@@ -8,8 +8,10 @@ import { deepseekConfig } from '../../src/main/providers/builtin/deepseek.ts'
 import { kimiConfig } from '../../src/main/providers/builtin/kimi.ts'
 import { mimoConfig } from '../../src/main/providers/builtin/mimo.ts'
 import {
+  DEEPSEEK_PRIMARY_MODELS,
   DEFAULT_DEEPSEEK_MODEL_MAPPINGS,
   createDefaultModelMappings,
+  sanitizeDeepSeekModelOverrides,
 } from '../../src/main/store/types.ts'
 import {
   createKimiChatPayload,
@@ -21,7 +23,8 @@ import {
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))))
 
 test('DeepSeek exposes two primary models and keeps feature aliases in default mappings', () => {
-  assert.deepEqual(deepseekConfig.supportedModels, ['deepseek-v4-flash', 'deepseek-v4-pro'])
+  assert.deepEqual(DEEPSEEK_PRIMARY_MODELS, ['deepseek-v4-flash', 'deepseek-v4-pro'])
+  assert.deepEqual(deepseekConfig.supportedModels, DEEPSEEK_PRIMARY_MODELS)
   assert.deepEqual(deepseekConfig.modelMappings, {
     'deepseek-v4-flash': 'deepseek-v4-flash',
     'deepseek-v4-pro': 'deepseek-v4-pro',
@@ -59,6 +62,36 @@ test('DeepSeek exposes two primary models and keeps feature aliases in default m
     resolveDeepSeekChatOptions({ model: 'deepseek-v4-flash' }, 'please use deep thinking if helpful'),
     { modelType: 'default', searchEnabled: false, thinkingEnabled: false },
   )
+})
+
+test('DeepSeek persisted model overrides are migrated away from old built-in aliases', () => {
+  assert.deepEqual(
+    sanitizeDeepSeekModelOverrides({
+      addedModels: [
+        { displayName: 'deepseek-v4-flash-search', actualModelId: 'deepseek-v4-flash' },
+        { displayName: 'DeepSeek-R1', actualModelId: 'deepseek-v4-flash' },
+        { displayName: 'custom-deepseek-web', actualModelId: 'custom-upstream-model' },
+        { displayName: 'my-flash-alias', actualModelId: 'deepseek-v4-flash' },
+      ],
+      excludedModels: ['DeepSeek-R1', 'deepseek-v4-flash'],
+    }),
+    {
+      addedModels: [
+        { displayName: 'custom-deepseek-web', actualModelId: 'custom-upstream-model' },
+        { displayName: 'my-flash-alias', actualModelId: 'deepseek-v4-flash' },
+      ],
+      excludedModels: ['deepseek-v4-flash'],
+    },
+  )
+
+  const storeSource = readFileSync(
+    join(root, 'src/main/store/store.ts'),
+    'utf8',
+  )
+
+  assert.match(storeSource, /p\.id === 'deepseek'/)
+  assert.match(storeSource, /sanitizeDeepSeekModelOverrides/)
+  assert.match(storeSource, /const shouldUseBuiltinModels = p\.id === 'deepseek' \|\| !hasUserOverrides/)
 })
 
 test('DeepSeek feature aliases are seeded as global model mappings', () => {
