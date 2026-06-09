@@ -1,8 +1,9 @@
 name: Build and Push Docker Image
 
 on:
-  release:
-    types: [ published ]
+  push:
+    branches:
+      - dev-docker
 
 env:
   REGISTRY: ghcr.io
@@ -29,17 +30,19 @@ jobs:
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GIT_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract version from release tag
+      - name: Extract version and name from package.json
         id: extract_version
-        run: echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+        run: |
+          echo "version=$(jq -r .version package.json)" >> $GITHUB_ENV
+          echo "image_name=$(jq -r .name package.json)" >> $GITHUB_ENV
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ env.image_name }}
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -49,6 +52,6 @@ jobs:
           push: true
           platforms: linux/386,linux/amd64,linux/arm/v7,linux/arm64
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.version }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.image_name }}:${{ env.version }}
+            ${{ env.REGISTRY }}/${{ env.image_name }}:latest
           labels: ${{ steps.meta.outputs.labels }}
