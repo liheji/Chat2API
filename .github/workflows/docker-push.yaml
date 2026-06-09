@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Chat2API Docker Push
 
 on:
   push:
@@ -50,7 +50,7 @@ jobs:
           context: .
           file: "docker/Dockerfile"
           push: true
-          platforms: linux/386,linux/amd64,linux/arm/v7,linux/arm64
+          platforms: linux/amd64,linux/arm64
           tags: |
             ${{ env.REGISTRY }}/${{ env.image_name }}:${{ env.version }}
             ${{ env.REGISTRY }}/${{ env.image_name }}:latest
